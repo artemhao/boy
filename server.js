@@ -6,7 +6,7 @@ const port = 8080;
 // Helper function to sleep for a specified time
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+const fetchWithRetry = async (url, retries = 1000, delay = 1) => {
     for (let i = 0; i < retries; i++) {
         try {
             return await axios.get(url);
