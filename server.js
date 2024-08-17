@@ -1,7 +1,26 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
-const port = 8080; // or any port number you prefer
+const port = 8080;
+
+// Helper function to sleep for a specified time
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await axios.get(url);
+        } catch (error) {
+            if (error.response && error.response.status === 429 && i < retries - 1) {
+                await sleep(delay);
+                delay *= 2; // Exponential backoff
+            } else {
+                throw error;
+            }
+        }
+    }
+    throw new Error('Failed to fetch after retries');
+};
 
 // Endpoint to check Roblox audio ID
 app.get('/asset/:id', async (req, res) => {
@@ -9,10 +28,9 @@ app.get('/asset/:id', async (req, res) => {
     const url = `https://economy.roblox.com/v2/assets/${assetId}/details`;
 
     try {
-        const response = await axios.get(url);
+        const response = await fetchWithRetry(url);
         const data = response.data;
 
-        // Check if the asset is of type audio
         if (data && data.AssetTypeId === 3) { // 3 is the AssetTypeId for audio
             const hasIcon = data.IconImageAssetId && data.IconImageAssetId !== 0;
             res.json({
